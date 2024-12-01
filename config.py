@@ -9,6 +9,6 @@ How many characters there are in one token (approximation)
 """
 TOKEN_LIMIT = 4000
 """
-The program trim messages the if number of tokens exceeds this value
+The program will trim messages if the number of tokens exceeds this value
 """
 

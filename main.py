@@ -33,17 +33,14 @@ async def handle_photo(msg: Message):
     url = f"https://api.telegram.org/file/bot{config.TG_TOKEN}/{img.file_path}"
     await chatgpt.push_image(user_id, "user", url)
 
-last_edit = 0
-
 @dp.message()
 async def on_message(msg: Message, state: FSMContext):
-    global last_edit
     user_id = msg.from_user.id
 
     text = None
 
     if msg.photo:
-        handle_photo(msg)
+        await handle_photo(msg)
         text = msg.caption
     elif msg.text:
         text = msg.text

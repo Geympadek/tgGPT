@@ -11,6 +11,9 @@ from aiogram.filters import Command, StateFilter
 from aiogram.exceptions import TelegramBadRequest
 
 import chatgpt
+import utils
+
+from time import time
 
 @dp.message(Command("start"))
 async def on_start(msg: types.Message, state: FSMContext):
@@ -21,31 +24,48 @@ async def on_start(msg: types.Message, state: FSMContext):
 
     database.setdefault("prefs", {"user_id": msg.from_user.id})
 
+async def handle_photo(msg: Message):
+    user_id = msg.from_user.id
+
+    file_id = attached_image_id(msg)
+
+    img = await bot.get_file(file_id)
+    url = f"https://api.telegram.org/file/bot{config.TG_TOKEN}/{img.file_path}"
+    await chatgpt.push_image(user_id, "user", url)
+
+last_edit = 0
+
 @dp.message()
 async def on_message(msg: Message, state: FSMContext):
+    global last_edit
     user_id = msg.from_user.id
 
     text = None
 
     if msg.photo:
-        file_id = attached_image_id(msg)
-
-        img = await bot.get_file(file_id)
-        url = f"https://api.telegram.org/file/bot{config.TG_TOKEN}/{img.file_path}"
-        await chatgpt.push_image(user_id, "user", url)
-        
+        handle_photo(msg)
         text = msg.caption
-
-    if msg.text:
+    elif msg.text:
         text = msg.text
-
+    
     if text:
         chatgpt.push_message(user_id, "user", text)
+        await gen_response(msg)
 
-        response = await chatgpt.get_response(user_id)
-        await msg.answer(response)
 
-        chatgpt.push_message(user_id, "assistant", response)
+async def gen_response(last_msg: Message):
+    user_id = last_msg.from_user.id
+
+    response = await chatgpt.get_response(user_id)
+    
+    text = utils.tag_content(response, "message")
+    reaction = utils.tag_content(response, "reaction")
+    chatgpt.push_message(user_id, "assistant", response)
+
+    if reaction and reaction != '':
+        await last_msg.react([types.ReactionTypeEmoji(emoji=reaction)])
+    if text and text.strip() != "":
+        await last_msg.answer(text)
 
 def attached_image_id(msg: Message):
     if msg.photo is None:
@@ -65,4 +85,4 @@ async def main():
 import asyncio
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(), debug=True)

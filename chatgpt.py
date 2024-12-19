@@ -107,29 +107,20 @@ def get_history(user_id: int):
         filters={"user_id": user_id}
     )
     messages = [{"role": entry["role"], "content": entry["content"]} for entry in message_entries]
-    messages.insert(0, {"role": "system", "content": "You are a LLM, ChatGPT 4o-mini. You are based in a messenger called Telegram. Your purpose is to help users in their tasks. You can see images by a different ai automatically generating descriptions for you. Pretend as if you can see them directly. Descriptions are going to appear inside <image></image> tags."})
+    messages.insert(0, {"role": "system", "content": 
+"""
+You are a LLM, ChatGPT 4o-mini. You are based in a messenger called Telegram. Your purpose is to help users in their tasks. You can see images by a different ai automatically generating descriptions for you. Pretend as if you can see them directly. Descriptions are going to appear inside <image></image> tags.
+Telegram supports built-in emoji-reactions. They appear under the message, and provide a useful alternative to messages, as sometimes, a full message is too much. For example, if user sends something short like "ok", you can respond with a reaction, without any text. Reaction currently support only following emojies:
+“👍”, “👎”, “❤”, “🔥”, “🥰”, “👏”, “😁”, “🤔”, “🤯”, “😱”, “🤬”, “😢”, “🎉”, “🤩”, “🤮”, “💩”, “🙏”, “👌”, “🕊”, “🤡”, “🥱”, “🥴”, “😍”, “🐳”, “❤‍🔥”, “🌚”, “🌭”, “💯”, “🤣”, “⚡”, “🍌”, “🏆”, “💔”, “🤨”, “😐”, “🍓”, “🍾”, “💋”, “🖕”, “😈”, “😴”, “😭”, “🤓”, “👻”, “👨‍💻”, “👀”, “🎃”, “🙈”, “😇”, “😨”, “🤝”, “✍”, “🤗”, “🫡”, “🎅”, “🎄”, “☃”, “💅”, “🤪”, “🗿”, “🆒”, “💘”, “🙉”, “🦄”, “😘”, “💊”, “🙊”, “😎”, “👾”, “🤷‍♂”, “🤷”, “🤷‍♀”, “😡”
+To use Reaction feature on the last message, place the emoji inside of the <reaction></reaction> tag. Example:
+`<reaction>🔥</reaction>`
+To write a text message to the user, use tag <message></message>. Everything outside of this tag will not be visible to the user. Don't forget about this and don't hallucinate please.
+"""})
     return messages
 
 async def main():
-    # await shorten_messages(1565642212)
-
-    links = [
-        "https://main-cdn.sbermegamarket.ru/big1/hlr-system/120/419/587/911/252/01/100045469396b0.jpg",
-        "https://cdn-irec.r-99.com/sites/default/files/imagecache/copyright/user-images/3106190/jYP7Ugdl9jHXotGp5gYrQ.jpg",
-        "https://masterpiecer-images.s3.yandex.net/ece9ae95799b11eebe30222e7fa838a6:upscaled",
-        "https://chesnok.media/wp-content/uploads/krupnyj-pocherk-min-1200x674.jpg"
-    ]
-
-    tasks = []
-
-    for link in links:
-        tasks.append(describe_img(link))
-    
-    descriptions = await asyncio.gather(*tasks)
-
-    with open("descs.txt", "w", encoding="utf-8") as file:
-        file.write("\n\n\n\n".join(descriptions))
-    pass
+    # print(tag_content("<reaction>👍</reaction>", "reaction"))
+    ...
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -56,11 +56,14 @@ async def gen_response(last_msg: Message):
     response = await chatgpt.get_response(user_id)
     
     text = utils.tag_content(response, "message")
-    reaction = utils.tag_content(response, "reaction")
+    reaction = utils.tag_content(response, "tg-reaction")
     chatgpt.push_message(user_id, "assistant", response)
 
     if reaction and reaction != '':
-        await last_msg.react([types.ReactionTypeEmoji(emoji=reaction)])
+        try:
+            await last_msg.react([types.ReactionTypeEmoji(emoji=reaction)])
+        except TelegramBadRequest:
+            print("Unable to send reaction")
     if text and text.strip() != "":
         await last_msg.answer(text)
 

@@ -44,6 +44,10 @@ async def push_image(user_id: int, role: str, url: str):
     content = f"User sent an image. Here's an automatically generated description: <image>{description}</image>"
     push_message(user_id, role, content)
 
+def push_reaction(user_id: int, role: str, emoji: str):
+    content = f"<tg-reaction>{emoji}</tg-reaction>"
+    push_message(user_id, role, content)
+
 def push_message(user_id: int, role: str, content: str):
     """
     Creates a new message entry in the database

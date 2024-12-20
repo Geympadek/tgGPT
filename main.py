@@ -33,6 +33,16 @@ async def handle_photo(msg: Message):
     url = f"https://api.telegram.org/file/bot{config.TG_TOKEN}/{img.file_path}"
     await chatgpt.push_image(user_id, "user", url)
 
+@dp.message_reaction()
+async def on_reaction(arg: types.MessageReactionUpdated, state: FSMContext):
+    last_msg_id = await state.get_value("last_msg_id")
+
+    if not last_msg_id or last_msg_id != arg.message_id:
+        return
+
+    for react in arg.new_reaction:
+        chatgpt.push_reaction(arg.user.id, role="user", emoji=react.emoji)
+
 @dp.message()
 async def on_message(msg: Message, state: FSMContext):
     user_id = msg.from_user.id
@@ -47,10 +57,9 @@ async def on_message(msg: Message, state: FSMContext):
     
     if text:
         chatgpt.push_message(user_id, "user", text)
-        await gen_response(msg)
+        await gen_response(msg, state)
 
-
-async def gen_response(last_msg: Message):
+async def gen_response(last_msg: Message, state: FSMContext):
     user_id = last_msg.from_user.id
 
     response = await chatgpt.get_response(user_id)
@@ -65,7 +74,8 @@ async def gen_response(last_msg: Message):
         except TelegramBadRequest:
             print("Unable to send reaction")
     if text and text.strip() != "":
-        await last_msg.answer(text)
+        msg = await last_msg.answer(text)
+        await state.update_data(last_msg_id = msg.message_id)
 
 def attached_image_id(msg: Message):
     if msg.photo is None:

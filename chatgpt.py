@@ -2,6 +2,7 @@ import asyncio
 
 import g4f.models
 from g4f.client import AsyncClient, Client
+from aiolimiter import AsyncLimiter
 from g4f import Provider
 
 import config
@@ -11,8 +12,10 @@ from time import time
 import aiohttp
 
 client = AsyncClient(
-    provider=Provider.DDG
+    provider=Provider.Blackbox
 )
+
+rate_limit = AsyncLimiter(max_rate=1, time_period=1)  # 10 requests per second
 
 async def describe_img(img_link: str) -> str:
     data = {
@@ -99,11 +102,18 @@ async def get_response(user_id: int) -> str:
     """
     prefs = database.read("prefs", {"user_id": user_id})[0]
 
-    response = await client.chat.completions.create(
-        model=prefs["model"],
-        messages=get_history(user_id)
-    )
-    return response.choices[0].message.content
+    for retry in range(10):
+        async with rate_limit:
+            response = await client.chat.completions.create(
+                model=prefs["model"],
+                messages=get_history(user_id)
+            )
+            content: str = response.choices[0].message.content
+            if content.strip() != "":
+                break
+            print(f"Unable to get response from the model. Retry {retry + 1}")
+    
+    return content
 
 def get_history(user_id: int):
     message_entries = database.read(
@@ -113,19 +123,21 @@ def get_history(user_id: int):
     messages = [{"role": entry["role"], "content": entry["content"]} for entry in message_entries]
     messages.insert(0, {"role": "system", "content": 
 """
-You are a LLM, ChatGPT 4o-mini. You are based in a messenger called Telegram. Your purpose is to help users in their tasks. You can see images by a different ai automatically generating descriptions for you. Pretend as if you can see them directly. Descriptions are going to appear inside <image></image> tags.
+You are a LLM. You are based in a messenger called Telegram. Your purpose is to help users in their tasks. You can see images by a different ai automatically generating descriptions for you. Pretend as if you can see them directly. Descriptions are going to appear inside <image></image> tags.
 Telegram supports a special type of message, called a tg-reaction. They provide an interesting way to show their emotion caused by the message. For example, when someone sends their cat's picture, if they really like it, they can send a tg-reaction showing their affection. 
-Tg-reactions are complementary and sometimes replace full messages. For example, when User says "Thank you", instead of writing a full response saying "you're welcome" you may want to respond with a short tg-reaction containing heart emoji. You can also use both Tg-reaction and message at the same time: example is when user sends you a picture and you like, you send a tg-reaction with heart emoji, but if they also ask you a question, you answer it as well. Using tg-reaction thus would become a great user-experience. Tg-reactions currently support only following emojies:
+Tg-reactions are complementary and sometimes replace full messages. For example, when User says "Thank you", instead of writing a full response saying "you're welcome" you may want to respond with a short tg-reaction containing heart emoji. You can also use both Tg-reaction and message at the same time: example is when user sends you a picture and you like it, you send a tg-reaction with heart emoji, but if they also ask you a question, you answer it as well. Using tg-reaction thus would become a great user-experience. Tg-reactions currently support only following emojies:
 “👍”, “👎”, “❤”, “🔥”, “🥰”, “👏”, “😁”, “🤔”, “🤯”, “😱”, “🤬”, “😢”, “🎉”, “🤩”, “🤮”, “💩”, “🙏”, “👌”, “🕊”, “🤡”, “🥱”, “🥴”, “😍”, “🐳”, “❤‍🔥”, “🌚”, “🌭”, “💯”, “🤣”, “⚡”, “🍌”, “🏆”, “💔”, “🤨”, “😐”, “🍓”, “🍾”, “💋”, “🖕”, “😈”, “😴”, “😭”, “🤓”, “👻”, “👨‍💻”, “👀”, “🎃”, “🙈”, “😇”, “😨”, “🤝”, “✍”, “🤗”, “🫡”, “🎅”, “🎄”, “☃”, “💅”, “🤪”, “🗿”, “🆒”, “💘”, “🙉”, “🦄”, “😘”, “💊”, “🙊”, “😎”, “👾”, “🤷‍♂”, “🤷”, “🤷‍♀”, “😡”
 Sending a different emoji as tg-reaction will not work, and the user won't see it.
 To use tg-reaction feature on the last message, place the emoji inside of the <tg-reaction></tg-reaction> tag. Example:
 `<tg-reaction>🔥</tg-reaction>`
-To write a text message to the user, use tag <message></message>. Everything outside of this tag will not be visible to the user. Don't forget about this and don't hallucinate please.
+To write a text message to the user, use tag <message></message>. Everything outside of this tag will not be visible to the user.
+If you choose not to respond to the user, you can leave <message></message> tag empty. This can be useful for example, when user sends incomplete info, and you are 100 percent sure, that they are going to send more complete info soon.
 """})
     return messages
 
 async def main():
     # print(tag_content("<reaction>👍</reaction>", "reaction"))
+    print(await get_response(1565642212))
     ...
 
 if __name__ == "__main__":

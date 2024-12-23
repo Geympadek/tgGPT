@@ -62,8 +62,9 @@ async def on_message(msg: Message, state: FSMContext):
 async def gen_response(last_msg: Message, state: FSMContext):
     user_id = last_msg.from_user.id
 
+    await bot.send_chat_action(last_msg.from_user.id, "typing")
     response = await chatgpt.get_response(user_id)
-    
+
     text = utils.tag_content(response, "message")
     reaction = utils.tag_content(response, "tg-reaction")
     chatgpt.push_message(user_id, "assistant", response)

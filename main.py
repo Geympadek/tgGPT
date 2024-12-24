@@ -1,6 +1,8 @@
 import loader
 from loader import dp, bot, database
 
+import parse
+
 import config
 
 from aiogram import types, F
@@ -67,9 +69,10 @@ async def gen_response(last_msg: Message, state: FSMContext):
 
     text = utils.tag_content(response, "message")
     reaction = utils.tag_content(response, "tg-reaction")
+    request = utils.tag_content(response, "website-request")
     chatgpt.push_message(user_id, "assistant", response)
 
-    if reaction and reaction != '':
+    if reaction and reaction.strip() != '':
         try:
             await last_msg.react([types.ReactionTypeEmoji(emoji=reaction)])
         except TelegramBadRequest:
@@ -77,6 +80,14 @@ async def gen_response(last_msg: Message, state: FSMContext):
     if text and text.strip() != "":
         msg = await last_msg.answer(text)
         await state.update_data(last_msg_id = msg.message_id)
+    if request and request.strip() != "":
+        website = await parse.site_from_url(request)
+
+        if len(website) / config.CHARS_PER_TOKEN > 0.6 * config.TOKEN_LIMIT:
+            website = "Unfortunately, the page was too long to load. Error."
+
+        chatgpt.push_website_response(user_id, "user", website)
+        await gen_response(last_msg, state)
 
 def attached_image_id(msg: Message):
     if msg.photo is None:

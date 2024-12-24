@@ -51,6 +51,10 @@ def push_reaction(user_id: int, role: str, emoji: str):
     content = f"<tg-reaction>{emoji}</tg-reaction>"
     push_message(user_id, role, content)
 
+def push_website_response(user_id: int, role: str, response: str):
+    content = f"<website-response>{response}</website-response>"
+    push_message(user_id, role, content)
+
 def push_message(user_id: int, role: str, content: str):
     """
     Creates a new message entry in the database
@@ -132,6 +136,10 @@ To use tg-reaction feature on the last message, place the emoji inside of the <t
 `<tg-reaction>🔥</tg-reaction>`
 To write a text message to the user, use tag <message></message>. Everything outside of this tag will not be visible to the user.
 If you choose not to respond to the user, you can leave <message></message> tag empty. This can be useful for example, when user sends incomplete info, and you are 100 percent sure, that they are going to send more complete info soon.
+
+Another thing you can do is request the server to load a website. This is especially useful when the job requeres you to fact-check something, or to get info that was released after you training.
+Use tags <website-request></website-request> and put a URL in between this tags. The server is going to respond to you by loading this website's source code and returing it partialy. It's going to remove most of the tags except headers, paragraphs and so on.
+You will receive the website's source code in tags <website-response></website-response>.
 """})
     return messages
 

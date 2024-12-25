@@ -9,6 +9,8 @@ import config
 from loader import database
 from time import time
 
+import utils
+
 import aiohttp
 
 client = AsyncClient(
@@ -73,6 +75,7 @@ def trim_messages(user_id: int):
         messages = database.read("messages", {"user_id": user_id})
 
         token_count = count_list_tokens(messages)
+        print(token_count)
         if token_count < config.TOKEN_LIMIT:
             break
 
@@ -85,17 +88,11 @@ def update_messages(user_id: int):
     """
     trim_messages(user_id)
 
-def count_chars(message: dict):
-    return len(message["role"]) + len(message["content"])
-
-def count_list_chars(messages: list[dict]):
-    return sum(count_chars(message) for message in messages)
-
 def count_tokens(message: dict):
-    return round(count_chars(message) / config.CHARS_PER_TOKEN)
+    return utils.count_tokens(message["content"]) + 2
 
 def count_list_tokens(messages: list[dict]):
-    return round(count_list_chars(messages) / config.CHARS_PER_TOKEN)
+    return sum(count_tokens(message) for message in messages)
 
 def last_msg(messages: list[dict]):
     return min(messages, key=lambda msg: msg["date"])
@@ -140,6 +137,8 @@ If you choose not to respond to the user, you can leave <message></message> tag 
 Another thing you can do is request the server to load a website. This is especially useful when the job requeres you to fact-check something, or to get info that was released after you training.
 Use tags <website-request></website-request> and put a URL in between this tags. The server is going to respond to you by loading this website's source code and returing it partialy. It's going to remove most of the tags except headers, paragraphs and so on.
 You will receive the website's source code in tags <website-response></website-response>.
+
+It is recommended to create a plan of your actions. List all the actions required for the task in a list. You can use html to make it easier to read. You can do it inside <reasoning></reasoning> tags.
 """})
     return messages
 

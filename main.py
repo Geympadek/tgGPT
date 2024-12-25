@@ -67,26 +67,35 @@ async def gen_response(last_msg: Message, state: FSMContext):
     await bot.send_chat_action(last_msg.from_user.id, "typing")
     response = await chatgpt.get_response(user_id)
 
-    text = utils.tag_content(response, "message")
-    reaction = utils.tag_content(response, "tg-reaction")
-    request = utils.tag_content(response, "website-request")
+    texts = utils.tag_content(response, "message")
+    reactions = utils.tag_content(response, "tg-reaction")
+    requests = utils.tag_content(response, "website-request")
     chatgpt.push_message(user_id, "assistant", response)
 
-    if reaction and reaction.strip() != '':
+    if len(reactions):
         try:
-            await last_msg.react([types.ReactionTypeEmoji(emoji=reaction)])
+            await last_msg.react([types.ReactionTypeEmoji(emoji=reactions[0])])
         except TelegramBadRequest:
             print("Unable to send reaction")
-    if text and text.strip() != "":
+    
+    for text in texts:
+        if text.strip() == '':
+            continue
         msg = await last_msg.answer(text)
         await state.update_data(last_msg_id = msg.message_id)
-    if request and request.strip() != "":
+    
+    for request in requests:
+        if request.strip() == "":
+            continue
+
         website = await parse.site_from_url(request)
 
-        if len(website) / config.CHARS_PER_TOKEN > 0.6 * config.TOKEN_LIMIT:
-            website = "Unfortunately, the page was too long to load. Error."
+        if utils.count_tokens(website) > 0.6 * config.TOKEN_LIMIT:
+            website = "Unfortunately, page's size exceeded the limit."
 
         chatgpt.push_website_response(user_id, "user", website)
+
+    if len(requests):
         await gen_response(last_msg, state)
 
 def attached_image_id(msg: Message):
@@ -107,4 +116,4 @@ async def main():
 import asyncio
 
 if __name__ == "__main__":
-    asyncio.run(main(), debug=True)
+    asyncio.run(main())

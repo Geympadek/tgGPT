@@ -8,6 +8,8 @@ def tag_content(src: str, tag: str):
     open_tag = f"<{tag}>"
     close_tag = f"</{tag}>"
 
+    tag_shift = len(open_tag) + len(close_tag)
+
     start = 0
     while True:
         start = src.find(open_tag, start)
@@ -17,7 +19,7 @@ def tag_content(src: str, tag: str):
         end = src.find(close_tag, start)
         result.append(src[start + len(open_tag):end])
 
-        start = end + len(close_tag)
+        start += len(result[-1]) + tag_shift
     return result
 
 tokenizer: LlamaTokenizer = LlamaTokenizer.from_pretrained('openlm-research/open_llama_3b_v2', cache_dir="tokenizer")

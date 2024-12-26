@@ -102,16 +102,17 @@ async def gen_response(last_msg: Message, state: FSMContext):
     response = await chatgpt.get_response(user_id)
 
     texts = utils.tag_content(response, "message")
-    reactions = utils.tag_content(response, "tg-reaction")
+    reaction_emojies = utils.tag_content(response, "tg-reaction")
     requests = utils.tag_content(response, "website-request")
     chatgpt.push_message(user_id, "assistant", response)
 
+    reactions = []
+    for reaction in reaction_emojies:
+        emoji = reaction if reaction in config.ALLOWED_REACTIONS else '❤'
+        reactions.append(types.ReactionTypeEmoji(emoji=emoji))
+
     if len(reactions):
-        try:
-            await last_msg.react([types.ReactionTypeEmoji(emoji=reactions[0])])
-        except TelegramBadRequest:
-            print("Unable to send reaction")
-            await last_msg.react([types.ReactionTypeEmoji(emoji='❤')])
+        await last_msg.react([reactions[0]])
     
     for text in texts:
         if text.strip() == '':

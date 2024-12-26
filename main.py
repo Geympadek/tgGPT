@@ -111,6 +111,7 @@ async def gen_response(last_msg: Message, state: FSMContext):
             await last_msg.react([types.ReactionTypeEmoji(emoji=reactions[0])])
         except TelegramBadRequest:
             print("Unable to send reaction")
+            await last_msg.react([types.ReactionTypeEmoji(emoji='❤')])
     
     for text in texts:
         if text.strip() == '':

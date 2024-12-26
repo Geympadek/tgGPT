@@ -82,6 +82,9 @@ def trim_messages(user_id: int):
         oldest = last_msg(messages)
         database.delete("messages", {"id": oldest["id"]})
 
+def clear_history(user_id: int):
+    database.delete("messages", filters={"user_id": user_id})
+
 def update_messages(user_id: int):
     """
     Makes sure that the model doesn't take in too much data.

@@ -30,8 +30,9 @@ async def on_start(msg: types.Message, state: FSMContext):
 async def on_clear(msg: types.Message, state: FSMContext):
     user_id = msg.from_user.id
     
-    database.delete("messages", filters={"user_id": user_id})
     await msg.answer("История очищена.")
+    
+    chatgpt.clear_history(user_id)
 
 @dp.message(Command("prompt"), StateFilter(None))
 async def on_prompt_command(msg: types.Message, state: FSMContext):
@@ -40,9 +41,13 @@ async def on_prompt_command(msg: types.Message, state: FSMContext):
 
 @dp.message(StateFilter("prompt"))
 async def on_prompt(msg: types.Message, state: FSMContext):
-    database.update('prefs', {"system_prompt": msg.text}, {"user_id": msg.from_user.id})
+    user_id = msg.from_user.id
+
+    database.update('prefs', {"system_prompt": msg.text}, {"user_id": user_id})
     await state.set_state(None)
     await msg.answer("Промпт успешно изменен.")
+    
+    chatgpt.clear_history(user_id)
 
 @dp.message(Command("prompt_reset"))
 async def on_prompt_reset(msg: types.Message, state: FSMContext):
@@ -52,6 +57,8 @@ async def on_prompt_reset(msg: types.Message, state: FSMContext):
 
     await state.set_state(None)
     await msg.answer("Промпт сброшен.")
+    
+    chatgpt.clear_history(user_id)
 
 async def handle_photo(msg: Message):
     user_id = msg.from_user.id

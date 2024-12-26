@@ -17,7 +17,7 @@ import utils
 
 from time import time
 
-@dp.message(Command("start"))
+@dp.message(Command("start"), StateFilter(None))
 async def on_start(msg: types.Message, state: FSMContext):
     await msg.answer(
         text="Привет!\n"
@@ -25,6 +25,33 @@ async def on_start(msg: types.Message, state: FSMContext):
              "Введите текст, чтобы начать.")
 
     database.setdefault("prefs", {"user_id": msg.from_user.id})
+
+@dp.message(Command("clear"), StateFilter(None))
+async def on_clear(msg: types.Message, state: FSMContext):
+    user_id = msg.from_user.id
+    
+    database.delete("messages", filters={"user_id": user_id})
+    await msg.answer("История очищена.")
+
+@dp.message(Command("prompt"), StateFilter(None))
+async def on_prompt_command(msg: types.Message, state: FSMContext):
+    await msg.answer("Введите дополнительные инструкции к нейросети: ")
+    await state.set_state("prompt")
+
+@dp.message(StateFilter("prompt"))
+async def on_prompt(msg: types.Message, state: FSMContext):
+    database.update('prefs', {"system_prompt": msg.text}, {"user_id": msg.from_user.id})
+    await state.set_state(None)
+    await msg.answer("Промпт успешно изменен.")
+
+@dp.message(Command("prompt_reset"))
+async def on_prompt_reset(msg: types.Message, state: FSMContext):
+    user_id = msg.from_user.id
+
+    database.update('prefs', {"system_prompt": None}, {"user_id": user_id})
+
+    await state.set_state(None)
+    await msg.answer("Промпт сброшен.")
 
 async def handle_photo(msg: Message):
     user_id = msg.from_user.id

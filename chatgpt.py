@@ -97,34 +97,9 @@ def count_list_tokens(messages: list[dict]):
 def last_msg(messages: list[dict]):
     return min(messages, key=lambda msg: msg["date"])
 
-async def get_response(user_id: int) -> str:
-    """
-    Returns the full response from the model asynchronously
-    """
-    prefs = database.read("prefs", {"user_id": user_id})[0]
-
-    for retry in range(10):
-        async with rate_limit:
-            response = await client.chat.completions.create(
-                model=prefs["model"],
-                messages=get_history(user_id)
-            )
-            content: str = response.choices[0].message.content
-            if content.strip() != "":
-                break
-            print(f"Unable to get response from the model. Retry {retry + 1}")
-    
-    return content
-
-def get_history(user_id: int):
-    message_entries = database.read(
-        "messages",
-        filters={"user_id": user_id}
-    )
-    messages = [{"role": entry["role"], "content": entry["content"]} for entry in message_entries]
-    messages.insert(0, {"role": "system", "content": 
-"""
-You are a LLM. You are based in a messenger called Telegram. Your purpose is to help users in their tasks. You can see images by a different ai automatically generating descriptions for you. Pretend as if you can see them directly. Descriptions are going to appear inside <image></image> tags.
+def get_system_prompt(prefs: dict):
+    prompt = f"""
+You are a LLM, model {prefs["model"]}. You are based in a messenger called Telegram. Your purpose is to help users in their tasks. You can see images by a different ai automatically generating descriptions for you. Pretend as if you can see them directly. Descriptions are going to appear inside <image></image> tags.
 Telegram supports a special type of message, called a tg-reaction. They provide an interesting way to show their emotion caused by the message. For example, when someone sends their cat's picture, if they really like it, they can send a tg-reaction showing their affection. 
 Tg-reactions are complementary and sometimes replace full messages. For example, when User says "Thank you", instead of writing a full response saying "you're welcome" you may want to respond with a short tg-reaction containing heart emoji. You can also use both Tg-reaction and message at the same time: example is when user sends you a picture and you like it, you send a tg-reaction with heart emoji, but if they also ask you a question, you answer it as well. Using tg-reaction thus would become a great user-experience. Tg-reactions currently support only following emojies:
 “👍”, “👎”, “❤”, “🔥”, “🥰”, “👏”, “😁”, “🤔”, “🤯”, “😱”, “🤬”, “😢”, “🎉”, “🤩”, “🤮”, “💩”, “🙏”, “👌”, “🕊”, “🤡”, “🥱”, “🥴”, “😍”, “🐳”, “❤‍🔥”, “🌚”, “🌭”, “💯”, “🤣”, “⚡”, “🍌”, “🏆”, “💔”, “🤨”, “😐”, “🍓”, “🍾”, “💋”, “🖕”, “😈”, “😴”, “😭”, “🤓”, “👻”, “👨‍💻”, “👀”, “🎃”, “🙈”, “😇”, “😨”, “🤝”, “✍”, “🤗”, “🫡”, “🎅”, “🎄”, “☃”, “💅”, “🤪”, “🗿”, “🆒”, “💘”, “🙉”, “🦄”, “😘”, “💊”, “🙊”, “😎”, “👾”, “🤷‍♂”, “🤷”, “🤷‍♀”, “😡”
@@ -139,7 +114,45 @@ Use tags <website-request></website-request> and put a URL in between this tags.
 You will receive the website's source code in tags <website-response></website-response>.
 
 It is recommended to create a plan of your actions. List all the actions required for the task in a list. You can use html to make it easier to read. You can do it inside <reasoning></reasoning> tags.
-"""})
+"""
+    if prefs.get("system_prompt") is not None:
+        prompt += f"""
+The user also stated their own communication preferences: 
+<user_prompt>
+{prefs["system_prompt"]}
+</user_prompt>
+"""
+    return prompt
+
+async def get_response(user_id: int) -> str:
+    """
+    Returns the full response from the model asynchronously
+    """
+    prefs = database.read("prefs", {"user_id": user_id})[0]
+
+    history = [{"role": "system", "content": get_system_prompt(prefs)}]
+    history.extend(get_history(user_id))
+
+    for retry in range(10):
+        async with rate_limit:
+            response = await client.chat.completions.create(
+                model=prefs["model"],
+                messages=history
+            )
+            content: str = response.choices[0].message.content
+            if content.strip() != "":
+                break
+            print(f"Unable to get response from the model. Retry {retry + 1}")
+        
+    return content
+
+def get_history(user_id: int):
+    message_entries = database.read(
+        "messages",
+        filters={"user_id": user_id}
+    )
+    messages = [{"role": entry["role"], "content": entry["content"]} for entry in message_entries]
+
     return messages
 
 async def main():

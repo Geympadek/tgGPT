@@ -16,6 +16,7 @@ import chatgpt
 import utils
 
 from time import time
+from tables import create_table
 
 @dp.message(Command("start"), StateFilter(None))
 async def on_start(msg: types.Message, state: FSMContext):
@@ -101,9 +102,12 @@ async def gen_response(last_msg: Message, state: FSMContext):
     await bot.send_chat_action(last_msg.from_user.id, "typing")
     response = await chatgpt.get_response(user_id)
 
-    texts = utils.tag_content(response, "message")
-    reaction_emojies = utils.tag_content(response, "tg-reaction")
-    requests = utils.tag_content(response, "website-request")
+    data = utils.parse_string(response)
+
+    texts = data["message"]
+    reaction_emojies = data["tg-reaction"]
+    requests = data["website-request"]
+    tables = data['table']
     chatgpt.push_message(user_id, "assistant", response)
 
     reactions = []
@@ -114,6 +118,9 @@ async def gen_response(last_msg: Message, state: FSMContext):
     if len(reactions):
         await last_msg.react([reactions[0]])
     
+    for table in tables:
+        create_table(user_id, table)
+
     for text in texts:
         if text.strip() == '':
             continue

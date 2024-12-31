@@ -1,11 +1,7 @@
 from bs4 import BeautifulSoup, Comment
-import aiohttp
 import asyncio
 
-async def get_as_str(url: str, *args):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, *args) as response:
-            return await response.text()
+from browsing import get_as_str_async
 
 def remove_commments(page: BeautifulSoup):
     for element in page(text=lambda text: isinstance(text, Comment)):
@@ -33,12 +29,12 @@ def remove_empty_lines(src: str):
     return "\n".join(lines)
 
 async def site_from_url(url: str):
-    raw = await get_as_str(url)
+    raw = await get_as_str_async(url)
 
     page = BeautifulSoup(raw, "html.parser")
 
     remove_commments(page)
-    remove_attrs(page, ['class', 'style'])
+    remove_attrs(page, ['class', 'style', 'ping', 'data-hveid', 'jsname', 'data-ved', 'jsaction', 'data-attrid', 'data-entityid', 'data-uri'])
     remove_elements(page, ['svg', 'style', 'script', 'link', 'meta', 'title'])
 
     for el in page.find_all():
@@ -49,7 +45,8 @@ async def site_from_url(url: str):
     return remove_empty_lines(src)
 
 async def main():
-    print(await site_from_url("https://www.azlyrics.com/lyrics/jackstauber/mindsight.html"))
+    print(await asyncio.gather(site_from_url("https://www.azlyrics.com/lyrics/jackstauber/mindsight.html"),
+                         site_from_url("https://www.azlyrics.com/lyrics/jackstauber/buttercup.html")))
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,60 +1,57 @@
-from loader import app, database
-import flask
-import config
-from time import time
+import pandas as pd
+import mdpd
+import tabulate
+import matplotlib.pyplot as plt
+from io import StringIO
 
-raw = """
-<table>
-  <tr>
-    <th>Язык программирования</th>
-    <th>Применение</th>
-  </tr>
-  <tr>
-    <td>Python</td>
-    <td>Научные вычисления, веб-разработка, автоматизация, анализ данных, машинное обучение</td>
-  </tr>
-  <tr>
-    <td>JavaScript</td>
-    <td>Веб-разработка (клиентская и серверная), создание интерактивных веб-приложений</td>
-  </tr>
-  <tr>
-    <td>Java</td>
-    <td>Разработка мобильных приложений (Android), корпоративные приложения, веб-приложения</td>
-  </tr>
-</table>
+CHAR_WIDTH = 7
+LINE_HEIGHT = 12
+
+PIXELS_PER_INCH = 100
+
+def code_to_table(code: str):
+    df = mdpd.from_md(code)
+    table = tabulate.tabulate(df, headers='keys', tablefmt='rounded_grid', showindex=False, maxcolwidths=40)
+    return table
+
+def text_to_image(text: str, path: str):
+    num_lines = text.count('\n') + 1
+    num_chars = max(len(line) for line in text.split('\n'))
+
+    fig_width = num_chars * CHAR_WIDTH / PIXELS_PER_INCH
+    fig_height = num_lines * LINE_HEIGHT / PIXELS_PER_INCH
+
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    fig.set_facecolor('#0b141e')
+    ax.axis('off')
+    ax.text(0.5, 0.5, text, fontsize=10, ha='center', va='center', fontfamily='monospace', color='#aed1f3')
+
+    plt.savefig(path, bbox_inches='tight', dpi=300, pad_inches=0)
+
+def render_table(table_content: str, path: str):
+    """
+    `table_content` - markdown representation of the table as a string
+    """
+    table = code_to_table(table_content)
+    text_to_image(table, path)
+
+def main():
+    csv = """
+| Символ | Описание                     |
+|--------|------------------------------|
+| \\n   | Перевод строки               |
+| \\t   | Табуляция                    |
+| \\r   | Возврат каретки              |
+| \\a   | Звуковой сигнал (bell)       |
+| \\\\   | Обратный слэш                 |
+| \\'   | Одинарная кавычка            |
+| \\"   | Двойная кавычка              |
+| \\b   | Удаление символа (backspace) |
+| \\f   | Перевод страницы (form feed) |
+| \\v   | Вертикальная табуляция       |
+| \\0   | Нулевой байт                 |
 """
+    render_table(csv, "yey.png")
 
-def create_table(user_id: int, content: str):
-    data = {
-        "user_id": user_id,
-        "content": content,
-        "date": time()
-    }
-    database.create('tables', data)
-
-def trim_tables(user_id: int):
-    while True:
-        tables = database.read('tables', filters={"user_id": user_id})
-        if len(tables) > config.TABLES_PER_USER:
-            old = oldest_table(tables)
-            database.delete('tables', old)
-        else:
-            return
-
-def oldest_table(tables: list[dict]):
-    return min(tables, key=lambda table: table["date"])
-
-@app.route('/')
-def render_table():
-    args = flask.request.args.to_dict()
-    table_id = args.get('table_id')
-    if table_id is None:
-        return flask.render_template('error.html')
-    
-    table = database.read('tables', filters={"id": table_id})
-    if len(table) == 0:
-        return flask.render_template('error.html')
-
-    content = table[0]["content"]
-
-    return flask.render_template('table.html', table=content)
+if __name__ == "__main__":
+    main()

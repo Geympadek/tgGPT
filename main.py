@@ -15,8 +15,7 @@ from aiogram.exceptions import TelegramBadRequest
 import chatgpt
 import utils
 
-from time import time
-from tables import create_table
+import tables as tb
 
 @dp.message(Command("start"), StateFilter(None))
 async def on_start(msg: types.Message, state: FSMContext):
@@ -118,14 +117,21 @@ async def gen_response(last_msg: Message, state: FSMContext):
     if len(reactions):
         await last_msg.react([reactions[0]])
     
-    for table in tables:
-        create_table(user_id, table)
+    TEMP_FILE = 'table.png'
 
-    for text in texts:
-        if text.strip() == '':
-            continue
-        msg = await last_msg.answer(text)
-        await state.update_data(last_msg_id = msg.message_id)
+    for table in tables:
+        table = table.strip()
+        tb.render_table(table, TEMP_FILE)
+        await last_msg.answer_photo(types.FSInputFile(TEMP_FILE))
+    
+    if len(texts):
+        for text in texts:
+            if text.strip() == '':
+                continue
+            msg = await last_msg.answer(
+                text
+            )
+            await state.update_data(last_msg_id = msg.message_id)
     
     for request in requests:
         if request.strip() == "":
@@ -134,7 +140,7 @@ async def gen_response(last_msg: Message, state: FSMContext):
         website = await parse.site_from_url(request)
 
         if utils.count_tokens(website) > 0.6 * config.TOKEN_LIMIT:
-            website = "Unfortunately, page's size exceeded the limit."
+            website = "Unfortunately, page's size exceeds the limit."
 
         chatgpt.push_website_response(user_id, "user", website)
 

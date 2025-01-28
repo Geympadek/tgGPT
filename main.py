@@ -14,6 +14,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 import chatgpt
 import utils
+import search
 
 import tables as tb
 
@@ -92,7 +93,7 @@ async def on_message(msg: Message, state: FSMContext):
         text = msg.text
     
     if text:
-        chatgpt.push_message(user_id, "user", text)
+        chatgpt.push_message(user_id, "user", f"<message>{text}</message>")
         await gen_response(msg, state)
 
 async def gen_response(last_msg: Message, state: FSMContext):
@@ -105,8 +106,10 @@ async def gen_response(last_msg: Message, state: FSMContext):
 
     texts = data["message"]
     reaction_emojies = data["tg-reaction"]
-    requests = data["website-request"]
     tables = data['table']
+    requests = data["website-request"]
+    queries = data["search-query"]
+
     chatgpt.push_message(user_id, "assistant", response)
 
     reactions = []
@@ -144,7 +147,14 @@ async def gen_response(last_msg: Message, state: FSMContext):
 
         chatgpt.push_website_response(user_id, "user", website)
 
-    if len(requests):
+    for query in queries:
+        if query.strip() == "":
+            continue
+
+        search_response = await search.search(query)
+        chatgpt.push_search_response(user_id, "user", search_response)
+
+    if len(requests) or len(queries):
         await gen_response(last_msg, state)
 
 def attached_image_id(msg: Message):

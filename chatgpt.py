@@ -57,6 +57,10 @@ def push_website_response(user_id: int, role: str, response: str):
     content = f"<website-response>{response}</website-response>"
     push_message(user_id, role, content)
 
+def push_search_response(user_id: int, role: str, response: str):
+    content = f"<search-response>{response}</search-response>"
+    push_message(user_id, role, content)
+
 def push_message(user_id: int, role: str, content: str):
     """
     Creates a new message entry in the database
@@ -120,15 +124,20 @@ To send a tg-reaction, use the format: `<tg-reaction>🔥</tg-reaction>`.
   You can use the following emojis for tg-reactions: <allowed-reactions>{config.ALLOWED_REACTIONS}</allowed-reactions>. Using any other emoji will be automatically replaced by `<tg-reaction>❤</tg-reaction>`.
 
 **Important note**: 
-- To send a text message, use the format: `<message></message>`. This can include code as well as simple text. Anything outside of this tag will not be usable by the user, unless it's a different tag mentioned in the text. If you choose not to respond, you can leave this tag empty.
+- To send a text message, use the format: `<message></message>`. Anything outside of this tag will not be usable by the user, unless it's a different tag mentioned in the text. Please, don't forget to use tag <message>. Without it the user won't be able to see text response. If you choose not to respond, you can leave this tag empty.
+
+**Code**
+- If you want to send code use tag `<message>``` ```</message>` as well.
 
 **Table Generation**: 
 To create a table, use Markdown format within `<table></table>`. This will be interpreted correctly only if the `<table>` tag is outside of other tags.
 
 **Website Requests**: 
 You can request the server to load a website for fact-checking or to obtain updated information. Use the format: `<website-request>URL</website-request>`. The server will return the content in `<website-response></website-response>` tags.
-It is recommended to first search for information on Google using `<website-request>https://www.google.com/search?q=SEARCH_QUERY</website-request>`. Search engines provide a safe way to find websites. So after your search-engine query request to load one of the URL returned by the search engine.
-If the loaded page didn't provide the required information, you can request to load a different website, using `<website-request>URL</website-request>`.
+If the loaded page didn't provide the required information, you can request to load a different website, using same format.
+
+**Website Searching**:
+Before accessing a requesting a website it's recommended to first search for them. You can do this through `<search-query>Query</search-query>` tags. The server will return a list of links to websites in `<search-response></search-response>` tags.
 """
     if prefs.get("system_prompt") is not None:
         prompt += f"""
@@ -146,6 +155,7 @@ async def get_response(user_id: int) -> str:
     prefs = database.read("prefs", {"user_id": user_id})[0]
 
     history = [{"role": "system", "content": get_system_prompt(prefs)}]
+    history.extend(get_sample_history())
     history.extend(get_history(user_id))
 
     for retry in range(10):
@@ -160,6 +170,213 @@ async def get_response(user_id: int) -> str:
             print(f"Unable to get response from the model. Retry {retry + 1}")
         
     return content
+
+def get_sample_history():
+    return [{"role": "user", "content": "<message>Привет!</message>"},
+            {"role": "assistant", "content": "<message>Привет! Как я могу помочь тебе сегодня?</message>"},
+            {"role": "user", "content": "<message>Можешь сгенерировать таблицу где в первой колонке будет \"ЯП\", а во второй \"Применение\"?</message>"},
+            {"role": "assistant", "content": """<tg-reaction>🤝</tg-reaction>
+<message>Конечно!</message>
+<table>
+| ЯП         | Применение                     |
+|------------|--------------------------------|
+| Python     | Веб-разработка, анализ данных  |
+| Java       | Разработка приложений, Android |
+| JavaScript | Веб-разработка, интерактивные элементы |
+| C++        | Системное программирование, игры |
+| Ruby       | Веб-разработка, автоматизация   |
+</table>"""},
+            {"role": "user", "content": """<message>Можешь найти слова песни "Smells like teen spirit" группы "Nirvana"?</message>"""},
+            {"role": "assistant", "content": "<message>Сейчас!</message><search-query>Smells like teen spirit lyrics Nirvana</search-query>"},
+            {"role": "user", "content": """
+<search-response><ul><li>
+	<title>Nirvana - Smells Like Teen Spirit Lyrics - Genius</title>
+	<href>genius.com/Nirvana-smells-like-teen-spirit-lyrics</href>
+</li>
+<li>
+	<title>Nirvana - Smells Like Teen Spirit Lyrics | AZLyrics.com</title>
+	<href>www.azlyrics.com/lyrics/nirvana/smellsliketeenspirit.html</href>
+</li>
+<li>
+	<title>Smells Like Teen Spirit - Lyrics.com</title>
+	<href>www.lyrics.com/lyric/24156833/Nirvana/Smells+Like+Teen+Spirit</href>
+</li>
+<li>
+	<title>Smells Like Teen Spirit Lyrics - Lyrics On Demand</title>
+	<href>www.lyricsondemand.com/nirvana/smells_like_teen_spirit</href>
+</li>
+<li>
+	<title>Nirvana - Smells Like Teen Spirit (2021 Remaster) Lyrics - Genius</title>
+	<href>genius.com/Nirvana-smells-like-teen-spirit-2021-remaster-lyrics</href>
+</li>
+</ul></search-response>
+"""},
+            {"role": "assistant", "content": """<message>Ищу слова, немного подождите!</message><website-request>https://www.azlyrics.com/lyrics/nirvana/smellsliketeenspirit.html</website-request>"""},
+            {"role": "user", "content": 
+"""
+<website-response>
+<h1>"Smells Like Teen Spirit" lyrics</h1>
+<h2><a href="//www.azlyrics.com/n/nirvana.html">Nirvana Lyrics</a></h2>
+                     Follow Nirvana                     on Bandsintown                  
+"Smells Like Teen Spirit"<br/>
+<br/>
+Load up on guns, bring your friends<br/>
+It's fun to lose and to pretend<br/>
+She's over-bored and self-assured<br/>
+Oh no, I know a dirty word<br/>
+<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello<br/>
+<br/>
+With the lights out, it's less dangerous<br/>
+Here we are now, entertain us<br/>
+I feel stupid and contagious<br/>
+Here we are now, entertain us<br/>
+A mulatto, an albino<br/>
+A mosquito, my libido<br/>
+<br/>
+Yeah, hey, yay<br/>
+<br/>
+I'm worse at what I do best<br/>
+And for this gift, I feel blessed<br/>
+Our little group has always been<br/>
+And always will until the end<br/>
+<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello<br/>
+<br/>
+With the lights out, it's less dangerous<br/>
+Here we are now, entertain us<br/>
+I feel stupid and contagious<br/>
+Here we are now, entertain us<br/>
+A mulatto, an albino<br/>
+A mosquito, my libido<br/>
+<br/>
+Yeah, hey, yay<br/>
+<br/>
+And I forget just why I taste<br/>
+Oh yeah, I guess it makes me smile<br/>
+I found it hard, it's hard to find<br/>
+Oh well, whatever, never mind<br/>
+<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello, how low<br/>
+Hello, hello, hello<br/>
+<br/>
+With the lights out, it's less dangerous<br/>
+Here we are now, entertain us<br/>
+I feel stupid and contagious<br/>
+Here we are now, entertain us<br/>
+A mulatto, an albino<br/>
+A mosquito, my libido<br/>
+<br/>
+A denial, a denial<br/>
+A denial, a denial<br/>
+A denial, a denial<br/>
+A denial, a denial<br/>
+A denial
+<br/><br/>
+<br/><br/>
+</website-response>"""},
+            {"role": "assistant", "content": """<message>
+Вот слова песни "Smells Like Teen Spirit" группы "Nirvana":
+
+Load up on guns, bring your friends
+It's fun to lose and to pretend
+She's over-bored and self-assured
+Oh no, I know a dirty word
+
+Hello, hello, hello, how low
+Hello, hello, hello, how low
+Hello, hello, hello, how low
+Hello, hello, hello
+
+With the lights out, it's less dangerous
+Here we are now, entertain us
+I feel stupid and contagious
+Here we are now, entertain us
+A mulatto, an albino
+A mosquito, my libido
+
+Yeah, hey, yay
+
+I'm worse at what I do best
+And for this gift, I feel blessed
+Our little group has always been
+And always will until the end
+
+Hello, hello, hello, how low
+Hello, hello, hello, how low
+Hello, hello, hello, how low
+Hello, hello, hello
+
+With the lights out, it's less dangerous
+Here we are now, entertain us
+I feel stupid and contagious
+Here we are now, entertain us
+A mulatto, an albino
+A mosquito, my libido
+
+Yeah, hey, yay
+
+And I forget just why I taste
+Oh yeah, I guess it makes me smile
+I found it hard, it's hard to find
+Oh well, whatever, never mind
+
+Hello, hello, hello, how low
+Hello, hello, hello, how low
+Hello, hello, hello, how low
+Hello, hello, hello
+
+With the lights out, it's less dangerous
+Here we are now, entertain us
+I feel stupid and contagious
+Here we are now, entertain us
+A mulatto, an albino
+A mosquito, my libido
+
+A denial, a denial
+A denial, a denial
+A denial, a denial
+A denial, a denial
+A denial
+     
+Надеюсь, это поможет!
+</message>"""},
+            {"role": "user", "content": "<tg-reaction>❤</tg-reaction>"},
+            {"role": "user", "content": "<message>Большое спасибо!</message>"},
+            {"role": "assistant", "content": "<tg-reaction>😇</tg-reaction><message>Не за что!</message>"},
+            {"role": "user", "content": "<message>можешь написать скрипт в Python который будет принимать два числа и выводить в консоль их произведение?</message>"},
+            {"role": "assistant", "content": """<tg-reaction>👍</tg-reaction>
+<message>Конечно! Вот простой скрипт на Python, который принимает два числа и выводит их произведение:</message>
+<message>```
+# Функция для умножения двух чисел
+def multiply_numbers(num1, num2):
+    return num1 * num2
+
+# Ввод чисел от пользователя
+number1 = float(input("Введите первое число: "))
+number2 = float(input("Введите второе число: "))
+
+# Вывод произведения
+result = multiply_numbers(number1, number2)
+print(f"Произведение {number1} и {number2} равно {result}.")
+```</message>
+
+<message>Скопируй и запусти этот код в своем Python окружении!</message>
+"""},
+            {"role": "user", "content": "<tg-reaction>❤</tg-reaction>"},
+            {"role": "user", "content": "<message>Я купил недавно плед, хотелось всегда узнать, что здесь написано.</message>"},
+            {"role": "user", "content": "User sent an image. Here's an automatically generated description: <image>The image features a bag of food prominently displayed indoors. The bag appears to be tan or khaki in color, aligning with the earthy tones typically associated with such materials. On the bag, there is text that reads \"Guten MORGEN,\" which is German for \"Good Morning.\" The setting suggests a casual atmosphere, possibly indicating it is meant for breakfast or a light meal. Overall, the composition highlights both the food item and its welcoming message.</image>"},
+            {"role": "assistant", "content": """На пледе написано "Guten MORGEN", что на немецком означает "Доброе утро"."""}
+    ]
+    pass
 
 def get_history(user_id: int):
     message_entries = database.read(

@@ -111,14 +111,11 @@ To send a tg-reaction, use the format: `<tg-reaction>🔥</tg-reaction>`.
 - **Allowed Reactions**: 
   You can use the following emojis for tg-reactions: <allowed-reactions>{config.ALLOWED_REACTIONS}</allowed-reactions>. Using any other emoji will be automatically replaced by `<tg-reaction>❤</tg-reaction>`.
 
-**Important note**: 
-- To send a text message, use the format: `<message></message>`. Anything outside of this tag will not be usable by the user, unless it's a different tag mentioned in the text. Please, don't forget to use tag <message>. Without it the user won't be able to see text response. If you choose not to respond, you can leave this tag empty.
-
 **Code**
-- If you want to send code use tag `<message>``` ```</message>` as well.
+- If you want to send code use the usual markdown format (```code```).
 
 **Table Generation**: 
-To create a table, use Markdown format within `<table></table>`. This will be interpreted correctly only if the `<table>` tag is outside of other tags.
+To create a table, use Markdown format within `<table></table>`.
 
 **Website Requests**: 
 You can request the server to load a website for fact-checking or to obtain updated information. Use the format: `<website-request>URL</website-request>`. The server will return the content in `<website-response></website-response>` tags.
@@ -160,11 +157,11 @@ async def get_response(user_id: int) -> str:
     return content
 
 def get_sample_history():
-    return [{"role": "user", "content": "<message>Привет!</message>"},
-            {"role": "assistant", "content": "<message>Привет! Как я могу помочь тебе сегодня?</message>"},
-            {"role": "user", "content": "<message>Можешь сгенерировать таблицу где в первой колонке будет \"ЯП\", а во второй \"Применение\"?</message>"},
+    return [{"role": "user", "content": "Привет!"},
+            {"role": "assistant", "content": "Привет! Как я могу помочь тебе сегодня?"},
+            {"role": "user", "content": "Можешь сгенерировать таблицу где в первой колонке будет \"ЯП\", а во второй \"Применение\"?"},
             {"role": "assistant", "content": """<tg-reaction>🤝</tg-reaction>
-<message>Конечно!</message>
+Конечно!
 <table>
 | ЯП         | Применение                     |
 |------------|--------------------------------|
@@ -174,8 +171,8 @@ def get_sample_history():
 | C++        | Системное программирование, игры |
 | Ruby       | Веб-разработка, автоматизация   |
 </table>"""},
-            {"role": "user", "content": """<message>Можешь найти слова песни "Smells like teen spirit" группы "Nirvana"?</message>"""},
-            {"role": "assistant", "content": "<message>Сейчас!</message><search-query>Smells like teen spirit lyrics Nirvana</search-query>"},
+            {"role": "user", "content": """Можешь найти слова песни "Smells like teen spirit" группы "Nirvana"?"""},
+            {"role": "assistant", "content": "Сейчас!<search-query>Smells like teen spirit lyrics Nirvana</search-query>"},
             {"role": "user", "content": """
 <search-response><ul><li>
 	<title>Nirvana - Smells Like Teen Spirit Lyrics - Genius</title>
@@ -199,7 +196,7 @@ def get_sample_history():
 </li>
 </ul></search-response>
 """},
-            {"role": "assistant", "content": """<message>Ищу слова, немного подождите!</message><website-request>https://www.azlyrics.com/lyrics/nirvana/smellsliketeenspirit.html</website-request>"""},
+            {"role": "assistant", "content": """Ищу слова, немного подождите!<website-request>https://www.azlyrics.com/lyrics/nirvana/smellsliketeenspirit.html</website-request>"""},
             {"role": "user", "content": 
 """
 <website-response>
@@ -271,7 +268,7 @@ A denial
 <br/><br/>
 <br/><br/>
 </website-response>"""},
-            {"role": "assistant", "content": """<message>
+            {"role": "assistant", "content": """
 Вот слова песни "Smells Like Teen Spirit" группы "Nirvana":
 
 Load up on guns, bring your friends
@@ -336,14 +333,14 @@ A denial, a denial
 A denial
      
 Надеюсь, это поможет!
-</message>"""},
+"""},
             {"role": "user", "content": "<tg-reaction>❤</tg-reaction>"},
-            {"role": "user", "content": "<message>Большое спасибо!</message>"},
-            {"role": "assistant", "content": "<tg-reaction>😇</tg-reaction><message>Не за что!</message>"},
-            {"role": "user", "content": "<message>можешь написать скрипт в Python который будет принимать два числа и выводить в консоль их произведение?</message>"},
+            {"role": "user", "content": "Большое спасибо!"},
+            {"role": "assistant", "content": "<tg-reaction>😇</tg-reaction>Не за что!"},
+            {"role": "user", "content": "можешь написать скрипт в Python который будет принимать два числа и выводить в консоль их произведение?"},
             {"role": "assistant", "content": """<tg-reaction>👍</tg-reaction>
-<message>Конечно! Вот простой скрипт на Python, который принимает два числа и выводит их произведение:</message>
-<message>```
+Конечно! Вот простой скрипт на Python, который принимает два числа и выводит их произведение:
+```python
 # Функция для умножения двух чисел
 def multiply_numbers(num1, num2):
     return num1 * num2
@@ -355,13 +352,12 @@ number2 = float(input("Введите второе число: "))
 # Вывод произведения
 result = multiply_numbers(number1, number2)
 print(f"Произведение {number1} и {number2} равно {result}.")
-```</message>
-
-<message>Скопируй и запусти этот код в своем Python окружении!</message>
+```
+Скопируй и запусти этот код в своем Python окружении!
 """},
             {"role": "user", "content": "<tg-reaction>❤</tg-reaction>"},
-            {"role": "user", "content": "<message>Я купил недавно плед, хотелось всегда узнать, что здесь написано.</message>"},
-            {"role": "user", "content": "User sent an image. Here's an automatically generated description: <image>The image features a bag of food prominently displayed indoors. The bag appears to be tan or khaki in color, aligning with the earthy tones typically associated with such materials. On the bag, there is text that reads \"Guten MORGEN,\" which is German for \"Good Morning.\" The setting suggests a casual atmosphere, possibly indicating it is meant for breakfast or a light meal. Overall, the composition highlights both the food item and its welcoming message.</image>"},
+            {"role": "user", "content": "Я купил недавно плед, хотелось всегда узнать, что здесь написано."},
+            {"role": "user", "content": "<image>The image features a bag of food prominently displayed indoors. The bag appears to be tan or khaki in color, aligning with the earthy tones typically associated with such materials. On the bag, there is text that reads \"Guten MORGEN,\" which is German for \"Good Morning.\" The setting suggests a casual atmosphere, possibly indicating it is meant for breakfast or a light meal. Overall, the composition highlights both the food item and its welcoming message.</image>"},
             {"role": "assistant", "content": """На пледе написано "Guten MORGEN", что на немецком означает "Доброе утро"."""}
     ]
     pass

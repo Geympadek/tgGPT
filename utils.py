@@ -1,13 +1,22 @@
 from transformers import LlamaTokenizer
 from collections import defaultdict
 
-def parse_string(string: str):
-    result: dict[str, list] = defaultdict(list)
+def separate_string(string: str):
+    """
+    Splits string into dict of html tags and text without it.
+    """
+    data: dict[str, list] = defaultdict(list)
+    messages = []
     
     start = 0
     try:
         while True:
             tag_start = string.find('<', start)
+
+            message = string[start:tag_start].strip()
+            if message != '':
+                messages.append(message)
+
             tag_end = string.find('>', tag_start)
 
             if tag_start == -1 or tag_end == -1:
@@ -27,7 +36,7 @@ def parse_string(string: str):
 
             content = string[tag_end + 1 : end_idx]
 
-            result[tag_name].append(content)
+            data[tag_name].append(content)
 
             start = tag_start + len(content) + tag_shift
     except IndexError:

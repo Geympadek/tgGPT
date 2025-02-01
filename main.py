@@ -22,7 +22,7 @@ import tables as tb
 async def on_start(msg: types.Message, state: FSMContext):
     await msg.answer(
         text="Привет!\n"
-             "Этот бот предоставляет бесплатный доступ к ChatGPT.\n\n"
+             "Этот бот предоставляет бесплатный доступ к ChatGPT и другим языковым моделям.\n\n"
              "Введите текст, чтобы начать.")
 
     database.setdefault("prefs", {"user_id": msg.from_user.id})
@@ -93,7 +93,7 @@ async def on_message(msg: Message, state: FSMContext):
         text = msg.text
     
     if text:
-        chatgpt.push_message(user_id, "user", f"<message>{text}</message>")
+        chatgpt.push_message(user_id, "user", f"{text}")
         await gen_response(msg, state)
 
 async def gen_response(last_msg: Message, state: FSMContext):
@@ -102,9 +102,8 @@ async def gen_response(last_msg: Message, state: FSMContext):
     await bot.send_chat_action(last_msg.from_user.id, "typing")
     response = await chatgpt.get_response(user_id)
 
-    data = utils.parse_string(response)
+    data, texts = utils.separate_string(response)
 
-    texts = data["message"]
     reaction_emojies = data["tg-reaction"]
     tables = data['table']
     requests = data["website-request"]

@@ -31,18 +31,6 @@ async def describe_img(img_link: str) -> str:
         async with session.post(url, json=data) as response:
             return (await response.json())['description']
 
-async def shorten_text(text: str) -> str:
-    messages = [
-        {"role": "system", "content": "You are an AI that shortens texts. User will send you a text, and you will respond with nothing but a shorter version of it. Do not engage with User and just do your job. Don't hallucinate."},
-        {"role": "user", "content": f"Shorten the following text: <text>{text}</text>"}
-    ]
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages
-    )
-    result = response.choices[0].message.content
-    return result
-
 async def push_image(user_id: int, role: str, url: str):
     description = await describe_img(url)
     

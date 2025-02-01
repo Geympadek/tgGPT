@@ -33,27 +33,7 @@ def parse_string(string: str):
     except IndexError:
         print("Out of range")
 
-    return result
-
-def tag_content(src: str, tag: str):
-    result = []
-
-    open_tag = f"<{tag}>"
-    close_tag = f"</{tag}>"
-
-    tag_shift = len(open_tag) + len(close_tag)
-
-    start = 0
-    while True:
-        start = src.find(open_tag, start)
-        if start == -1:
-            break
-        
-        end = src.find(close_tag, start)
-        result.append(src[start + len(open_tag):end])
-
-        start += len(result[-1]) + tag_shift
-    return result
+    return data, messages
 
 tokenizer: LlamaTokenizer = LlamaTokenizer.from_pretrained('openlm-research/open_llama_3b_v2', cache_dir="tokenizer")
 

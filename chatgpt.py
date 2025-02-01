@@ -14,7 +14,7 @@ import utils
 import aiohttp
 
 client = AsyncClient(
-    provider=Provider.Blackbox
+    provider=Provider.Liaobots
 )
 
 rate_limit = AsyncLimiter(max_rate=1, time_period=1)  # 10 requests per second

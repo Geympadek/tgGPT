@@ -67,7 +67,6 @@ def trim_messages(user_id: int):
         messages = database.read("messages", {"user_id": user_id})
 
         token_count = count_list_tokens(messages)
-        print(token_count)
         if token_count < config.TOKEN_LIMIT:
             break
 

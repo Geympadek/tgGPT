@@ -13,7 +13,11 @@ def separate_string(string: str):
         while True:
             tag_start = string.find('<', start)
 
-            message = string[start:tag_start].strip()
+            if tag_start != -1:
+                message = string[start:tag_start].strip()
+            else:
+                message = string[start:].strip()
+
             if message != '':
                 messages.append(message)
 
@@ -23,7 +27,6 @@ def separate_string(string: str):
                 break
 
             if string[tag_start + 1] == '/':
-                print("What's wrong with you?")
                 start = tag_end
 
             tag_name = string[tag_start + 1: tag_end]

@@ -14,7 +14,7 @@ import utils
 import aiohttp
 
 client = AsyncClient(
-    provider=Provider.Liaobots
+    provider=Provider.BlackboxAPI
 )
 
 rate_limit = AsyncLimiter(max_rate=1, time_period=1)  # 10 requests per second
@@ -67,7 +67,6 @@ def trim_messages(user_id: int):
         messages = database.read("messages", {"user_id": user_id})
 
         token_count = count_list_tokens(messages)
-        print(token_count)
         if token_count < config.TOKEN_LIMIT:
             break
 

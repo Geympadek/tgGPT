@@ -29,6 +29,8 @@ async def on_start(msg: types.Message, state: FSMContext):
 
 @dp.message(Command("clear"), StateFilter(None))
 async def on_clear(msg: types.Message, state: FSMContext):
+    print(f"/clear on user {msg.from_user.first_name}")
+
     user_id = msg.from_user.id
     
     await msg.answer("История очищена.")
@@ -62,6 +64,7 @@ async def on_prompt_reset(msg: types.Message, state: FSMContext):
     chatgpt.clear_history(user_id)
 
 async def handle_photo(msg: Message):
+    print(f"Photo received from {msg.from_user.first_name}")
     user_id = msg.from_user.id
 
     file_id = attached_image_id(msg)
@@ -72,6 +75,7 @@ async def handle_photo(msg: Message):
 
 @dp.message_reaction()
 async def on_reaction(arg: types.MessageReactionUpdated, state: FSMContext):
+    print(f"Reaction received from {arg.from_user.first_name}")
     last_msg_id = await state.get_value("last_msg_id")
 
     if not last_msg_id or last_msg_id != arg.message_id:
@@ -82,6 +86,7 @@ async def on_reaction(arg: types.MessageReactionUpdated, state: FSMContext):
 
 @dp.message()
 async def on_message(msg: Message, state: FSMContext):
+    print(f"Message received from {msg.from_user.first_name}")
     user_id = msg.from_user.id
 
     text = None
@@ -97,6 +102,7 @@ async def on_message(msg: Message, state: FSMContext):
         await gen_response(msg, state)
 
 async def gen_response(last_msg: Message, state: FSMContext):
+    print(f"Generating a response.")
     user_id = last_msg.from_user.id
 
     await bot.send_chat_action(last_msg.from_user.id, "typing")
@@ -117,16 +123,19 @@ async def gen_response(last_msg: Message, state: FSMContext):
         reactions.append(types.ReactionTypeEmoji(emoji=emoji))
 
     if len(reactions):
+        print("Using tg-reactions")
         await last_msg.react([reactions[0]])
     
     TEMP_FILE = 'table.png'
 
     for table in tables:
+        print("Generating a table")
         table = table.strip()
         tb.render_table(table, TEMP_FILE)
         await last_msg.answer_photo(types.FSInputFile(TEMP_FILE))
     
     if len(texts):
+        print("Responding with a text")
         for text in texts:
             if text.strip() == '':
                 continue
@@ -136,6 +145,7 @@ async def gen_response(last_msg: Message, state: FSMContext):
             await state.update_data(last_msg_id = msg.message_id)
     
     for request in requests:
+        print("Performing a web request")
         if request.strip() == "":
             continue
 
@@ -147,6 +157,7 @@ async def gen_response(last_msg: Message, state: FSMContext):
         chatgpt.push_website_response(user_id, "user", website)
 
     for query in queries:
+        print("Googling.")
         if query.strip() == "":
             continue
 

@@ -142,18 +142,18 @@ async def get_response(user_id: int) -> str:
     history.extend(get_sample_history())
     history.extend(get_history(user_id))
 
-    for retry in range(10):
+    for retry in range(3):
         async with rate_limit:
-            response = await client.chat.completions.create(
-                model=prefs["model"],
-                messages=history
-            )
-            content: str = response.choices[0].message.content
-            if content.strip() != "":
-                break
-            print(f"Unable to get response from the model. Retry {retry + 1}")
-        
-    return content
+            response = ""
+            try:
+                response = await client.chat.completions.create(
+                    model=prefs["model"],
+                    messages=history
+                )
+                return response.choices[0].message.content
+            except:
+                print(f"Unable to get response from the model. Retry {retry + 1}")
+    raise Exception("Unable to generate response.")
 
 def get_sample_history():
     return [{"role": "user", "content": "Привет!"},

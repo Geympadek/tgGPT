@@ -108,7 +108,7 @@ async def gen_response(last_msg: Message, state: FSMContext):
     await bot.send_chat_action(last_msg.from_user.id, "typing")
     response = await chatgpt.get_response(user_id)
 
-    data, texts = utils.separate_string(response)
+    data, text = utils.separate_string(response)
 
     reaction_emojies = data["tg-reaction"]
     tables = data['table']
@@ -134,15 +134,12 @@ async def gen_response(last_msg: Message, state: FSMContext):
         tb.render_table(table, TEMP_FILE)
         await last_msg.answer_photo(types.FSInputFile(TEMP_FILE))
     
-    if len(texts):
+    if text != '':
         print("Responding with a text")
-        for text in texts:
-            if text.strip() == '':
-                continue
-            msg = await last_msg.answer(
-                text
-            )
-            await state.update_data(last_msg_id = msg.message_id)
+        msg = await last_msg.answer(
+            text
+        )
+        await state.update_data(last_msg_id = msg.message_id)
     
     for request in requests:
         print("Performing a web request")

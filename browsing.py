@@ -4,13 +4,18 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException
 
+import config
+import platform
+
 import asyncio
 
 def init_webdriver():
     '''
     Creates a new driver for scraping
     '''
-    service = Service()
+    service = None
+
+    service = Service(executable_path=config.CHROMEDRIVER_PATH)
 
     options = Options()
 

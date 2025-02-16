@@ -107,68 +107,60 @@ async def gen_response(last_msg: Message, state: FSMContext):
 
     await bot.send_chat_action(last_msg.from_user.id, "typing")
     response = await chatgpt.get_response(user_id)
-
-    data, text = utils.separate_string(response)
-
-    reaction_emojies = data["tg-reaction"]
-    tables = data['table']
-    requests = data["website-request"]
-    queries = data["search-query"]
-
     chatgpt.push_message(user_id, "assistant", response)
 
-    reactions = []
-    for reaction in reaction_emojies:
-        emoji = reaction if reaction in config.ALLOWED_REACTIONS else '❤'
-        reactions.append(types.ReactionTypeEmoji(emoji=emoji))
+    actions = utils.separate_string(response)
 
-    if len(reactions):
+    for action in actions:
+        await perform_action(action, last_msg, state)
+
+async def perform_action(action: str | dict[str, str], last_msg: Message, state: FSMContext):
+    user_id = last_msg.from_user.id
+    if type(action) is str:
+        print("Responding with a text")
+        msg = await last_msg.answer(action)
+        await state.update_data(last_msg_id = msg.message_id)
+        return
+
+    act_content = action['content'].strip()
+    if act_content == '':
+        return
+
+    tag = action['tag']
+    if tag == 'tg-reaction':
         print("Using tg-reactions")
-        await last_msg.react([reactions[0]])
-    
+        emoji = act_content if act_content in config.ALLOWED_REACTIONS else '❤'
+        react = types.ReactionTypeEmoji(emoji=emoji)
+        await last_msg.react([react])
+        return
+
     TEMP_FILE = 'table.png'
 
-    for table in tables:
+    if tag == 'table':
         print("Generating a table")
-        table = table.strip()
-        tb.render_table(table, TEMP_FILE)
+        tb.render_table(act_content, TEMP_FILE)
         await last_msg.answer_photo(types.FSInputFile(TEMP_FILE))
+        return
     
-    if text != '':
-        print("Responding with a text")
-        msg = await last_msg.answer(
-            text
-        )
-        await state.update_data(last_msg_id = msg.message_id)
-    
-    for request in requests:
+    if tag == 'website-request':
         print("Performing a web request")
 
-        request = request.strip()
-        if request.strip() == "":
-            continue
-
-        await last_msg.answer(f"_Загрузка сайта_ [по ссылке]({request})...")
-        website = await parse.site_from_url(request)
+        await last_msg.answer(f"_Загрузка сайта_ [по ссылке]({act_content})...")
+        website = await parse.site_from_url(act_content)
 
         if utils.count_tokens(website) > 0.6 * config.TOKEN_LIMIT:
             website = "Unfortunately, page's size exceeds the limit."
 
         chatgpt.push_website_response(user_id, "user", website)
+        await gen_response(last_msg, state)
 
-    for query in queries:
+    if tag == 'search-query':
         print("Googling.")
 
-        query = query.strip()
-        if query == "":
-            continue
+        await last_msg.answer(f"_Поиск по запросу:_ **\"{act_content}\"**...")
 
-        await last_msg.answer(f"_Поисковой по запросу:_ **\"{query}\"**...")
-
-        search_response = await search.search(query)
+        search_response = await search.search(act_content)
         chatgpt.push_search_response(user_id, "user", search_response)
-
-    if len(requests) or len(queries):
         await gen_response(last_msg, state)
 
 def attached_image_id(msg: Message):

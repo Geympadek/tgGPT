@@ -143,9 +143,12 @@ async def gen_response(last_msg: Message, state: FSMContext):
     
     for request in requests:
         print("Performing a web request")
+
+        request = request.strip()
         if request.strip() == "":
             continue
 
+        await last_msg.answer(f"_Загрузка сайта_ [по ссылке]({request})...")
         website = await parse.site_from_url(request)
 
         if utils.count_tokens(website) > 0.6 * config.TOKEN_LIMIT:
@@ -155,8 +158,12 @@ async def gen_response(last_msg: Message, state: FSMContext):
 
     for query in queries:
         print("Googling.")
-        if query.strip() == "":
+
+        query = query.strip()
+        if query == "":
             continue
+
+        await last_msg.answer(f"_Поисковой по запросу:_ **\"{query}\"**...")
 
         search_response = await search.search(query)
         chatgpt.push_search_response(user_id, "user", search_response)

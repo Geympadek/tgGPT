@@ -14,7 +14,7 @@ import utils
 import aiohttp
 
 client = AsyncClient(
-    provider=Provider.BlackboxAPI
+    provider=Provider.PollinationsAI
 )
 
 rate_limit = AsyncLimiter(max_rate=1, time_period=1)  # 10 requests per second
@@ -142,6 +142,7 @@ async def get_response(user_id: int) -> str:
     history.extend(get_sample_history())
     history.extend(get_history(user_id))
 
+    last_error = None
     for retry in range(3):
         async with rate_limit:
             response = ""
@@ -151,9 +152,10 @@ async def get_response(user_id: int) -> str:
                     messages=history
                 )
                 return response.choices[0].message.content
-            except:
+            except Exception as e:
+                last_error = e
                 print(f"Unable to get response from the model. Retry {retry + 1}")
-    raise Exception("Unable to generate response.")
+    raise last_error
 
 def get_sample_history():
     return [{"role": "user", "content": "Привет!"},

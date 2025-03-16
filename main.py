@@ -86,6 +86,8 @@ async def on_reaction(arg: types.MessageReactionUpdated, state: FSMContext):
 
 @dp.message()
 async def on_message(msg: Message, state: FSMContext):
+    database.setdefault("prefs", {"user_id": msg.from_user.id})
+
     print(f"Message received from {msg.from_user.first_name}")
     user_id = msg.from_user.id
 

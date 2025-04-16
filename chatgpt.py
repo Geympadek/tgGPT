@@ -2,7 +2,6 @@ import asyncio
 
 import g4f.models
 from g4f.client import AsyncClient, Client
-from aiolimiter import AsyncLimiter
 from g4f import Provider
 
 import config
@@ -17,8 +16,6 @@ import aiohttp
 client = AsyncClient(
     provider=Provider.PollinationsAI
 )
-
-rate_limit = AsyncLimiter(max_rate=1, time_period=1)  # 10 requests per second
 
 async def describe_img(img_link: str) -> str:
     data = {
@@ -146,17 +143,16 @@ async def get_response(user_id: int) -> str:
 
     last_error = None
     for retry in range(3):
-        async with rate_limit:
-            response = ""
-            try:
-                response = await client.chat.completions.create(
-                    model=prefs["model"],
-                    messages=history
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                last_error = e
-                print(f"Unable to get response from the model. Retry {retry + 1}")
+        response = ""
+        try:
+            response = await client.chat.completions.create(
+                model=prefs["model"],
+                messages=history
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            last_error = e
+            print(f"Unable to get response from the model. Retry {retry + 1}")
     raise last_error
 
 def get_sample_history():

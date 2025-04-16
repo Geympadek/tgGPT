@@ -1,8 +1,5 @@
-from duckduckgo_search import DDGS
 import browsing
 import bs4
-
-ddgs = DDGS()
 
 async def get_html(query: str):
     url = f"https://html.duckduckgo.com/html/?q={query}"

@@ -1,8 +1,6 @@
-import pandas as pd
 import mdpd
 import tabulate
 import matplotlib.pyplot as plt
-from io import StringIO
 
 CHAR_WIDTH = 7
 LINE_HEIGHT = 12

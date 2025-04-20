@@ -25,8 +25,6 @@ async def on_start(msg: types.Message, state: FSMContext):
              "Этот бот предоставляет бесплатный доступ к ChatGPT и другим языковым моделям.\n\n"
              "Введите текст, чтобы начать.")
 
-    database.setdefault("prefs", {"user_id": msg.from_user.id})
-
 @dp.message(Command("clear"), StateFilter(None))
 async def on_clear(msg: types.Message, state: FSMContext):
     print(f"/clear on user {msg.from_user.first_name}")
@@ -37,41 +35,18 @@ async def on_clear(msg: types.Message, state: FSMContext):
     
     chatgpt.clear_history(user_id)
 
-@dp.message(Command("prompt"), StateFilter(None))
-async def on_prompt_command(msg: types.Message, state: FSMContext):
-    await msg.answer("Введите дополнительные инструкции к нейросети: ")
-    await state.set_state("prompt")
-
-@dp.message(StateFilter("prompt"))
-async def on_prompt(msg: types.Message, state: FSMContext):
-    user_id = msg.from_user.id
-
-    database.update('prefs', {"system_prompt": msg.text}, {"user_id": user_id})
-    await state.set_state(None)
-    await msg.answer("Промпт успешно изменен.")
-    
-    chatgpt.clear_history(user_id)
-
-@dp.message(Command("prompt_reset"))
-async def on_prompt_reset(msg: types.Message, state: FSMContext):
-    user_id = msg.from_user.id
-
-    database.update('prefs', {"system_prompt": None}, {"user_id": user_id})
-
-    await state.set_state(None)
-    await msg.answer("Промпт сброшен.")
-    
-    chatgpt.clear_history(user_id)
-
 async def handle_photo(msg: Message):
     print(f"Photo received from {msg.from_user.first_name}")
     user_id = msg.from_user.id
 
     file_id = attached_image_id(msg)
+    file = await bot.get_file(file_id)
 
-    img = await bot.get_file(file_id)
-    url = f"https://api.telegram.org/file/bot{config.TG_TOKEN}/{img.file_path}"
-    await chatgpt.push_image(user_id, "user", url)
+    img = await bot.download_file(file.file_path);
+    img = img.read()
+
+    filename = file.file_path.split('/')[-1] if file.file_path else "image.jpg"
+    chatgpt.push_image(user_id, "user", img, filename)
 
 @dp.message_reaction()
 async def on_reaction(arg: types.MessageReactionUpdated, state: FSMContext):
@@ -86,8 +61,6 @@ async def on_reaction(arg: types.MessageReactionUpdated, state: FSMContext):
 
 @dp.message()
 async def on_message(msg: Message, state: FSMContext):
-    database.setdefault("prefs", {"user_id": msg.from_user.id})
-
     print(f"Message received from {msg.from_user.first_name}")
     user_id = msg.from_user.id
 
@@ -169,8 +142,7 @@ def attached_image_id(msg: Message):
     if msg.photo is None:
         return None
 
-    best_photo = max(msg.photo, key=lambda info : info.width)
-    return best_photo.file_id
+    return msg.photo[-1].file_id
     
 @dp.callback_query()
 async def on_query(query: CallbackQuery, state: FSMContext):

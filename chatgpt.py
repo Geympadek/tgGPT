@@ -56,6 +56,9 @@ def trim_messages(user_id: int):
 
 def clear_history(user_id: int):
     database.delete("messages", filters={"user_id": user_id})
+    clear_img_history(user_id)
+
+def clear_img_history(user_id: int):
     database.delete("images", filters={"user_id": user_id})
 
 def update_messages(user_id: int):

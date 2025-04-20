@@ -46,6 +46,7 @@ async def handle_photo(msg: Message):
     img = img.read()
 
     filename = file.file_path.split('/')[-1] if file.file_path else "image.jpg"
+
     chatgpt.push_image(user_id, "user", img, filename)
 
 @dp.message_reaction()
@@ -67,12 +68,19 @@ async def on_message(msg: Message, state: FSMContext):
     text = None
 
     if msg.photo:
+        if len(database.read("images", filters={"user_id": user_id, "has_caption": 1})):
+            chatgpt.clear_img_history(user_id)
+            print("clearing img history")
         await handle_photo(msg)
         text = msg.caption
     elif msg.text:
         text = msg.text
     
     if text:
+        images = database.read("images", filters={"user_id": user_id})
+        if len(images):
+            database.update("images", {"has_caption": 1}, {"id": images[-1]["id"]})
+
         chatgpt.push_message(user_id, "user", f"{text}")
         await gen_response(msg, state)
 

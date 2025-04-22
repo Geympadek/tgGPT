@@ -12,7 +12,7 @@ import datetime
 import utils
 
 client = AsyncClient(
-    provider=Provider.PollinationsAI
+    provider=Provider.OIVSCode
 )
 
 def push_image(user_id: int, role: str, img: bytes, img_name: str):
